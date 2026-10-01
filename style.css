@@ -1,27 +1,542 @@
-/* Custom Scrollbar Styling */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
 }
 
-::-webkit-scrollbar-track {
-    background: #0f172a;
+body {
+    background-color: #0b0f19;
+    color: #f8fafc;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-::-webkit-scrollbar-thumb {
-    background: #334155;
+/* HEADER NAVBAR */
+.app-header {
+    background-color: #111827;
+    border-bottom: 1px solid #1f2937;
+    padding: 0.8rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-logo-img {
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.logo-container h2 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.logo-container h2 span {
+    color: #3b82f6;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* BUTTONS */
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-primary { background-color: #2563eb; color: #fff; }
+.btn-primary:hover { background-color: #1d4ed8; }
+
+.btn-outline { background: transparent; border: 1px solid #3b82f6; color: #3b82f6; }
+.btn-outline:hover { background: #3b82f6; color: #fff; }
+
+.btn-secondary { background: #374151; color: #fff; }
+.btn-secondary:hover { background: #4b5563; }
+
+.btn-danger { background: #dc2626; color: #fff; }
+.btn-danger:hover { background: #b91c1c; }
+
+.btn-block { width: 100%; justify-content: center; padding: 0.75rem; }
+.btn-sm { padding: 4px 8px; font-size: 0.75rem; background: #374151; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+
+/* MAIN LAYOUT SPLIT */
+.main-layout {
+    display: flex;
+    flex: 1;
+    padding: 1.5rem;
+    gap: 1.5rem;
+    width: 100%;
+    align-items: flex-start;
+}
+
+.control-panel {
+    width: 320px;
+    flex-shrink: 0;
+}
+
+.panel-card {
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.panel-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: #f3f4f6;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    color: #9ca3af;
+    margin-bottom: 6px;
+}
+
+.label-with-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.form-group select,
+.form-group textarea,
+.form-group input {
+    width: 100%;
+    background: #1f2937;
+    border: 1px solid #374151;
+    color: #fff;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.form-group select:disabled,
+.form-group textarea:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* BRACKET DISPLAY AREA */
+.bracket-display-area {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+}
+
+.bracket-container-root {
+    width: 100%;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: #111827;
+    border: 1px dashed #374151;
+    border-radius: 12px;
+    color: #6b7280;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+/* ==========================================
+   FASE GRUP: LAYOUT KLASEMEN + JADWAL VERTIKAL
+   ========================================== */
+.group-stage-container {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+    align-items: flex-start;
+}
+
+.standings-box {
+    flex: 0 0 400px;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.group-matches-box {
+    flex: 1;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.standings-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #f59e0b;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+}
+
+.standings-table th {
+    background-color: #0b0f19;
+    color: #64748b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    padding: 10px 6px;
+    border-bottom: 2px solid #1e293b;
+}
+
+.standings-table td {
+    padding: 10px 6px;
+    border-bottom: 1px solid #1e293b;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+}
+
+.team-cell {
+    font-weight: 600;
+    color: #f8fafc;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.team-icon {
+    color: #3b82f6;
+    font-size: 0.8rem;
+}
+
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-weight: 800;
+    font-size: 0.75rem;
+}
+
+.rank-1 { background: #f59e0b; color: #000; }
+.rank-2 { background: #94a3b8; color: #000; }
+.rank-3 { background: #b45309; color: #fff; }
+.rank-other { background: #1e293b; color: #64748b; }
+
+.stat-badge {
+    padding: 2px 6px;
     border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.8rem;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+.stat-p { background: #1e293b; color: #94a3b8; }
+.stat-w { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.stat-l { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.stat-pts { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+
+/* DAFTAR MATCH FASE GRUP MENUMPUK KE BAWAH (VERTIKAL) */
+.group-matches-vertical-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
-/* Card Match Animation */
-.match-card {
-    transition: all 0.2s ease-in-out;
+.group-match-row-card {
+    background: #0b0f19;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    transition: all 0.2s;
 }
 
-.match-card:hover {
-    transform: translateY(-2px);
+.group-match-row-card:hover {
+    border-color: #3b82f6;
+}
+
+.group-match-row-card.is-done {
+    border-left: 4px solid #22c55e;
+}
+
+.match-info-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 80px;
+}
+
+.match-badge { font-size: 0.75rem; color: #94a3b8; font-weight: 700; }
+.status-pill { font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-align: center; width: max-content; }
+.status-done { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.status-pending { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+
+.match-teams-versus {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    flex: 1;
+}
+
+.row-team-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.row-team-box.team-left { justify-content: flex-end; text-align: right; }
+.row-team-box.team-right { justify-content: flex-start; text-align: left; }
+
+.row-team-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.row-team-score {
+    font-size: 1.1rem;
+    font-weight: 800;
+    background: #1e293b;
+    padding: 2px 10px;
+    border-radius: 4px;
+    color: #f8fafc;
+}
+
+.row-team-box.is-winner .row-team-name { color: #22c55e; font-weight: 700; }
+.row-team-box.is-winner .row-team-score { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+
+.vs-badge-row {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #475569;
+}
+
+.btn-row-edit {
+    background: #1e293b;
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-row-edit:hover { background: #3b82f6; color: #fff; }
+
+/* ==========================================
+   SINGLE & DOUBLE ELIMINATION TREE
+   ========================================== */
+.bracket-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+}
+
+.bracket-section-title {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #3b82f6;
+}
+
+.bracket-tree {
+    display: flex;
+    gap: 2.5rem;
+    align-items: center;
+}
+
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    min-width: 220px;
+    height: 100%;
+    gap: 1.5rem;
+}
+
+.round-header-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #f59e0b;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #1f2937;
+}
+
+.tree-match-card {
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    padding: 0.6rem;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tree-match-card.completed {
+    border-left: 3px solid #22c55e;
+}
+
+.tree-match-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: #64748b;
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+}
+
+.tree-team-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    background: #1f2937;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+}
+
+.tree-team-name {
+    color: #cbd5e1;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+}
+
+.tree-team-score {
+    font-weight: 700;
+    color: #94a3b8;
+}
+
+.tree-team-item.winner {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.tree-team-item.winner .tree-team-name,
+.tree-team-item.winner .tree-team-score {
+    color: #22c55e;
+    font-weight: 700;
+}
+
+.btn-tree-edit {
+    width: 100%;
+    margin-top: 4px;
+    background: #1e293b;
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 4px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-tree-edit:hover { background: #3b82f6; color: #fff; }
+
+/* MODAL OVERLAY & CARD */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-overlay.hidden { display: none; }
+
+.modal-card {
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    width: 380px;
+    max-width: 90%;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #1f2937;
+}
+
+.modal-header h3 { font-size: 1rem; color: #f3f4f6; }
+.btn-close { background: transparent; border: none; color: #9ca3af; font-size: 1.5rem; cursor: pointer; }
+.modal-body { padding: 1.25rem; }
+.modal-footer { padding: 1rem; border-top: 1px solid #1f2937; }
+.text-error { color: #ef4444; font-size: 0.75rem; margin-top: 4px; }
+.text-error.hidden { display: none; }
+
+.score-input-grid { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.team-score-box { flex: 1; text-align: center; }
+.team-label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: #e2e8f0; }
+.team-score-box input { text-align: center; font-size: 1.2rem; font-weight: 800; padding: 0.5rem; }
+.vs-badge { font-weight: 800; color: #64748b; font-size: 0.9rem; }
+
+/* RESPONSIVE LAYOUT LAYAR KECIL */
+@media (max-width: 992px) {
+    .main-layout { flex-direction: column; }
+    .control-panel { width: 100%; }
+    .group-stage-container { flex-direction: column; }
+    .standings-box { flex: 1 1 100%; width: 100%; }
 }

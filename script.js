@@ -1,635 +1,661 @@
-// GLOBAL STATE
+// ==========================================
+// STATE UTAMA APLIKASI
+// ==========================================
 let isAdminLoggedIn = false;
 let tournamentData = {
-    format: 'single_elimination',
+    name: "MLBB TOURNAMENT",
+    format: "single_elimination",
     teams: [],
-    matches: [],
-    upperMatches: [],
-    lowerMatches: [],
-    grandFinal: null,
-    schedule: []
+    upperRounds: [],
+    lowerRounds: [],
+    standings: {}
 };
 
-// INITIALIZATION
+// ==========================================
+// EVENT LISTENER
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     initEvents();
-    loadFromLocalStorage();
+    updateAdminUI();
+    loadLocalData();
 });
 
 function initEvents() {
-    // Tombol Generate
-    const btnGenerate = document.getElementById('btnGenerate');
-    if (btnGenerate) btnGenerate.addEventListener('click', generateTournament);
-
-    // Tombol Export JSON
-    const btnExport = document.getElementById('btnExport');
-    if (btnExport) btnExport.addEventListener('click', exportTournamentData);
-
-    // Tombol Archive Firebase
-    const btnArchive = document.getElementById('btnArchive');
-    if (btnArchive) btnArchive.addEventListener('click', archiveTournamentData);
-
-    // Admin Auth
     const btnAdminAuth = document.getElementById('btnAdminAuth');
+    const btnCloseLoginModal = document.getElementById('btnCloseLoginModal');
+    const adminLoginForm = document.getElementById('adminLoginForm');
+
     if (btnAdminAuth) {
         btnAdminAuth.addEventListener('click', () => {
             if (isAdminLoggedIn) {
                 isAdminLoggedIn = false;
                 updateAdminUI();
+                alert("Logout Admin Berhasil!");
             } else {
-                openLoginModal();
+                document.getElementById('loginModal').classList.remove('hidden');
             }
         });
     }
 
-    const adminLoginForm = document.getElementById('adminLoginForm');
+    if (btnCloseLoginModal) {
+        btnCloseLoginModal.addEventListener('click', () => {
+            document.getElementById('loginModal').classList.add('hidden');
+        });
+    }
+
     if (adminLoginForm) {
         adminLoginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const pwd = document.getElementById('adminPassword').value;
-            if (pwd === '2528') {
+            const pass = document.getElementById('adminPassword').value;
+            if (pass === '2528') {
                 isAdminLoggedIn = true;
+                document.getElementById('adminPassword').value = '';
                 document.getElementById('loginError').classList.add('hidden');
-                closeLoginModal();
+                document.getElementById('loginModal').classList.add('hidden');
                 updateAdminUI();
+                alert("Login Admin Berhasil!");
             } else {
                 document.getElementById('loginError').classList.remove('hidden');
             }
         });
     }
 
-    const btnCloseLoginModal = document.getElementById('btnCloseLoginModal');
-    if (btnCloseLoginModal) btnCloseLoginModal.addEventListener('click', closeLoginModal);
+    const btnShuffle = document.getElementById('btnShuffleTeams');
+    if (btnShuffle) btnShuffle.addEventListener('click', shuffleTeamsInput);
+
+    const btnGenerate = document.getElementById('btnGenerate');
+    if (btnGenerate) btnGenerate.addEventListener('click', generateBracket);
+
+    const btnExport = document.getElementById('btnExport');
+    if (btnExport) btnExport.addEventListener('click', exportDataJSON);
+
+    const btnArchive = document.getElementById('btnArchive');
+    if (btnArchive) btnArchive.addEventListener('click', archiveToFirebase);
 
     const btnCloseScoreModal = document.getElementById('btnCloseScoreModal');
-    if (btnCloseScoreModal) btnCloseScoreModal.addEventListener('click', closeScoreModal);
-
     const btnSaveScore = document.getElementById('btnSaveScore');
-    if (btnSaveScore) btnSaveScore.addEventListener('click', saveMatchScore);
+
+    if (btnCloseScoreModal) {
+        btnCloseScoreModal.addEventListener('click', () => {
+            document.getElementById('scoreModal').classList.add('hidden');
+        });
+    }
+
+    if (btnSaveScore) btnSaveScore.addEventListener('click', saveScoreFromModal);
 }
 
 function updateAdminUI() {
-    const authText = document.getElementById('adminAuthText');
-    const nameInput = document.getElementById('tournamentName');
+    const adminAuthText = document.getElementById('adminAuthText');
+    const teamsInput = document.getElementById('teamsInput');
+    const tournamentFormat = document.getElementById('tournamentFormat');
+    const btnGenerate = document.getElementById('btnGenerate');
+    const btnShuffle = document.getElementById('btnShuffleTeams');
 
     if (isAdminLoggedIn) {
-        if (authText) authText.textContent = "Logout Admin";
-        if (nameInput) nameInput.removeAttribute('readonly');
+        if (adminAuthText) adminAuthText.innerText = "Logout Admin";
+        if (teamsInput) teamsInput.removeAttribute('disabled');
+        if (tournamentFormat) tournamentFormat.removeAttribute('disabled');
+        if (btnGenerate) btnGenerate.removeAttribute('disabled');
+        if (btnShuffle) btnShuffle.removeAttribute('disabled');
     } else {
-        if (authText) authText.textContent = "Login Admin";
-        if (nameInput) nameInput.setAttribute('readonly', 'true');
+        if (adminAuthText) adminAuthText.innerText = "Login Admin";
+        if (teamsInput) teamsInput.setAttribute('disabled', 'true');
+        if (tournamentFormat) tournamentFormat.setAttribute('disabled', 'true');
+        if (btnGenerate) btnGenerate.setAttribute('disabled', 'true');
+        if (btnShuffle) btnShuffle.setAttribute('disabled', 'true');
     }
-    renderTournamentView();
+    renderBracket();
 }
 
-function openLoginModal() {
-    document.getElementById('adminPassword').value = '';
-    document.getElementById('loginError').classList.add('hidden');
-    document.getElementById('loginModal').classList.remove('hidden');
-}
+function shuffleTeamsInput() {
+    if (!isAdminLoggedIn) return;
+    const textarea = document.getElementById('teamsInput');
+    let teams = textarea.value.trim().split('\n').map(t => t.trim()).filter(t => t !== "");
 
-function closeLoginModal() {
-    document.getElementById('loginModal').classList.add('hidden');
-}
-
-function closeScoreModal() {
-    document.getElementById('scoreModal').classList.add('hidden');
-}
-
-// GENERATE TOURNAMENT LOGIC
-function generateTournament() {
-    const rawTeams = document.getElementById('teamsInput').value.trim().split('\n').filter(t => t.trim() !== "");
-    if (rawTeams.length < 2) {
+    if (teams.length < 2) {
         alert("Masukkan minimal 2 tim!");
         return;
     }
 
-    tournamentData.format = document.getElementById('tournamentFormat').value;
-    tournamentData.teams = rawTeams;
-
-    if (tournamentData.format === 'single_elimination') {
-        generateSingleElimination(rawTeams);
-    } else if (tournamentData.format === 'double_elimination') {
-        generateDoubleElimination(rawTeams);
-    } else if (tournamentData.format === 'round_robin') {
-        generateRoundRobin(rawTeams);
+    for (let i = teams.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [teams[i], teams[j]] = [teams[j], teams[i]];
     }
 
-    saveToLocalStorage();
-    renderTournamentView();
+    textarea.value = teams.join('\n');
 }
 
-// 1. SINGLE ELIMINATION
-function generateSingleElimination(teams) {
-    let numTeams = teams.length;
-    let numRounds = Math.ceil(Math.log2(numTeams));
-    let bracketSize = Math.pow(2, numRounds);
-    let numByes = bracketSize - numTeams;
+// ==========================================
+// LOGIKA GENERATE TURNAMEN
+// ==========================================
+function generateBracket() {
+    if (!isAdminLoggedIn) return;
 
-    let currentRoundTeams = [...teams];
-    for (let i = 0; i < numByes; i++) {
-        currentRoundTeams.push("BYE");
+    const rawTeams = document.getElementById('teamsInput').value;
+    const format = document.getElementById('tournamentFormat').value;
+    const teams = rawTeams.split('\n').map(t => t.trim()).filter(t => t !== "");
+
+    if (teams.length < 2) {
+        alert("Masukkan minimal 2 tim!");
+        return;
     }
 
-    let matchId = 1;
-    tournamentData.matches = [];
+    tournamentData.format = format;
+    tournamentData.teams = teams;
+    tournamentData.upperRounds = [];
+    tournamentData.lowerRounds = [];
+    tournamentData.standings = {};
 
-    for (let r = 0; r < numRounds; r++) {
-        let matchCount = Math.pow(2, numRounds - r - 1);
-        let roundMatches = [];
+    if (format === 'round_robin') {
+        generateRoundRobin(teams);
+    } else if (format === 'double_elimination') {
+        generateDoubleElimination(teams);
+    } else {
+        generateSingleEliminationTree(teams);
+    }
 
-        for (let m = 0; m < matchCount; m++) {
-            let team1 = (r === 0) ? currentRoundTeams[m * 2] : "TBD";
-            let team2 = (r === 0) ? currentRoundTeams[m * 2 + 1] : "TBD";
+    saveLocalData();
+    renderBracket();
+}
 
-            let status = "pending";
-            let score1 = null, score2 = null;
+function generateSingleEliminationTree(teams) {
+    let numTeams = teams.length;
+    let powerOfTwo = Math.pow(2, Math.ceil(Math.log2(numTeams)));
+    let byes = powerOfTwo - numTeams;
 
-            if (team2 === "BYE" && team1 !== "TBD") {
-                status = "completed";
-                score1 = 1;
-                score2 = 0;
-            }
+    let paddedTeams = [...teams];
+    for (let i = 0; i < byes; i++) paddedTeams.push("BYE");
 
-            roundMatches.push({
-                id: matchId++,
-                round: r + 1,
-                matchIndex: m,
-                team1: team1,
-                team2: team2,
-                score1: score1,
-                score2: score2,
-                status: status
+    let matchCounter = 1;
+    let currentMatches = [];
+
+    for (let i = 0; i < paddedTeams.length; i += 2) {
+        let t1 = paddedTeams[i];
+        let t2 = paddedTeams[i + 1];
+        let isBye = (t2 === "BYE");
+
+        currentMatches.push({
+            id: matchCounter++,
+            team1: t1,
+            team2: t2,
+            score1: isBye ? 1 : 0,
+            score2: 0,
+            winner: isBye ? t1 : null,
+            loser: isBye ? "BYE" : null
+        });
+    }
+
+    tournamentData.upperRounds.push({ title: "Round 1", matches: currentMatches });
+
+    let totalRounds = Math.log2(powerOfTwo);
+    for (let r = 2; r <= totalRounds; r++) {
+        let nextMatches = [];
+        let prevMatches = tournamentData.upperRounds[r - 2].matches;
+        let roundTitle = (r === totalRounds) ? "GRAND FINAL" : ((r === totalRounds - 1) ? "SEMI FINAL" : `ROUND ${r}`);
+
+        for (let i = 0; i < prevMatches.length; i += 2) {
+            let prev1 = prevMatches[i];
+            let prev2 = prevMatches[i + 1];
+
+            nextMatches.push({
+                id: matchCounter++,
+                team1: prev1.winner ? prev1.winner : "TBD",
+                team2: prev2 ? (prev2.winner ? prev2.winner : "TBD") : "TBD",
+                score1: 0,
+                score2: 0,
+                winner: null,
+                loser: null
             });
         }
-        tournamentData.matches.push({
-            name: r === numRounds - 1 ? "Final" : `Round ${r + 1}`,
-            matches: roundMatches
-        });
+        tournamentData.upperRounds.push({ title: roundTitle, matches: nextMatches });
     }
-
-    recalculateSingleElim();
 }
 
-function recalculateSingleElim() {
-    tournamentData.matches.forEach((round, rIdx) => {
-        round.matches.forEach((m, mIdx) => {
-            let winner = null;
-            if (m.team2 === 'BYE') {
-                winner = m.team1;
-            } else if (m.status === 'completed' && m.score1 !== null && m.score2 !== null) {
-                let s1 = parseInt(m.score1);
-                let s2 = parseInt(m.score2);
-                if (s1 > s2) winner = m.team1;
-                else if (s2 > s1) winner = m.team2;
-            }
-
-            if (winner && rIdx < tournamentData.matches.length - 1) {
-                let nextMatchIdx = Math.floor(mIdx / 2);
-                let nextMatch = tournamentData.matches[rIdx + 1].matches[nextMatchIdx];
-                if (mIdx % 2 === 0) nextMatch.team1 = winner;
-                else nextMatch.team2 = winner;
-            }
-        });
-    });
-}
-
-// 2. DOUBLE ELIMINATION
 function generateDoubleElimination(teams) {
-    let numTeams = teams.length;
-    let numRounds = Math.ceil(Math.log2(numTeams));
-    let bracketSize = Math.pow(2, numRounds);
-    let numByes = bracketSize - numTeams;
+    generateSingleEliminationTree(teams);
 
-    let currentRoundTeams = [...teams];
-    for (let i = 0; i < numByes; i++) {
-        currentRoundTeams.push("BYE");
-    }
+    let upperR1Count = tournamentData.upperRounds[0].matches.length;
+    let lowerMatchCounter = 101;
 
-    let matchId = 101;
-    
-    tournamentData.upperMatches = [];
-    let upperRoundTeams = [...currentRoundTeams];
-
-    for (let r = 0; r < numRounds; r++) {
-        let matchCount = Math.pow(2, numRounds - r - 1);
-        let roundMatches = [];
-
-        for (let m = 0; m < matchCount; m++) {
-            let team1 = (r === 0) ? upperRoundTeams[m * 2] : "TBD";
-            let team2 = (r === 0) ? upperRoundTeams[m * 2 + 1] : "TBD";
-            
-            let status = "pending";
-            let score1 = null, score2 = null;
-
-            if (team2 === "BYE" && team1 !== "TBD") {
-                status = "completed";
-                score1 = 1;
-                score2 = 0;
-            }
-
-            roundMatches.push({
-                id: matchId++,
-                round: r + 1,
-                matchIndex: m,
-                team1: team1,
-                team2: team2,
-                score1: score1,
-                score2: score2,
-                status: status
-            });
-        }
-        tournamentData.upperMatches.push({
-            name: r === numRounds - 1 ? "Upper Final" : `Upper Round ${r + 1}`,
-            matches: roundMatches
+    let lowerR1Matches = [];
+    for (let i = 0; i < Math.floor(upperR1Count / 2); i++) {
+        lowerR1Matches.push({
+            id: lowerMatchCounter++,
+            team1: "Kalah Upper #1",
+            team2: "Kalah Upper #2",
+            score1: 0,
+            score2: 0,
+            winner: null,
+            loser: null
         });
     }
 
-    tournamentData.lowerMatches = [];
-    let lowerRoundsCount = (numRounds - 1) * 2;
-    let currentMatchCount = Math.pow(2, numRounds - 2);
-
-    for (let r = 0; r < lowerRoundsCount; r++) {
-        let roundMatches = [];
-        for (let m = 0; m < currentMatchCount; m++) {
-            roundMatches.push({
-                id: matchId++,
-                round: r + 1,
-                matchIndex: m,
-                team1: "TBD",
-                team2: "TBD",
-                score1: null,
-                score2: null,
-                status: "pending"
-            });
-        }
-        tournamentData.lowerMatches.push({
-            name: r === lowerRoundsCount - 1 ? "Lower Final" : `Lower Round ${r + 1}`,
-            matches: roundMatches
-        });
-
-        if (r % 2 === 1) {
-            currentMatchCount = Math.max(1, Math.floor(currentMatchCount / 2));
-        }
-    }
-
-    tournamentData.grandFinal = {
-        id: matchId++,
-        round: "Grand Final",
-        team1: "TBD (Juara Upper)",
-        team2: "TBD (Juara Lower)",
-        score1: null,
-        score2: null,
-        status: "pending"
-    };
-
-    recalculateDoubleElim();
-}
-
-function recalculateDoubleElim() {
-    if (!tournamentData.upperMatches || tournamentData.upperMatches.length === 0) return;
-
-    tournamentData.upperMatches.forEach((round, rIdx) => {
-        round.matches.forEach((m, mIdx) => {
-            let winner = null, loser = null;
-
-            if (m.team2 === 'BYE') {
-                winner = m.team1;
-            } else if (m.status === 'completed' && m.score1 !== null && m.score2 !== null) {
-                let s1 = parseInt(m.score1), s2 = parseInt(m.score2);
-                if (s1 > s2) { winner = m.team1; loser = m.team2; }
-                else if (s2 > s1) { winner = m.team2; loser = m.team1; }
-            }
-
-            if (winner && rIdx < tournamentData.upperMatches.length - 1) {
-                let nextMatchIdx = Math.floor(mIdx / 2);
-                let nextMatch = tournamentData.upperMatches[rIdx + 1].matches[nextMatchIdx];
-                if (mIdx % 2 === 0) nextMatch.team1 = winner;
-                else nextMatch.team2 = winner;
-            }
-
-            if (winner && rIdx === tournamentData.upperMatches.length - 1) {
-                tournamentData.grandFinal.team1 = winner;
-            }
-
-            if (loser && tournamentData.lowerMatches.length > 0) {
-                if (rIdx === 0) {
-                    let targetLowerMatch = tournamentData.lowerMatches[0].matches[Math.floor(mIdx / 2)];
-                    if (targetLowerMatch) {
-                        if (mIdx % 2 === 0) targetLowerMatch.team1 = loser;
-                        else targetLowerMatch.team2 = loser;
-                    }
-                } else {
-                    let targetLowerRoundIdx = (rIdx - 1) * 2 + 1;
-                    if (tournamentData.lowerMatches[targetLowerRoundIdx]) {
-                        let targetLowerMatch = tournamentData.lowerMatches[targetLowerRoundIdx].matches[mIdx];
-                        if (targetLowerMatch) targetLowerMatch.team2 = loser;
-                    }
-                }
-            }
-        });
+    tournamentData.lowerRounds.push({
+        title: "LOWER ROUND 1",
+        matches: lowerR1Matches
     });
 
-    tournamentData.lowerMatches.forEach((round, rIdx) => {
-        round.matches.forEach((m, mIdx) => {
-            let winner = null;
-            if (m.status === 'completed' && m.score1 !== null && m.score2 !== null) {
-                let s1 = parseInt(m.score1), s2 = parseInt(m.score2);
-                if (s1 > s2) winner = m.team1;
-                else if (s2 > s1) winner = m.team2;
-            }
-
-            if (winner) {
-                if (rIdx < tournamentData.lowerMatches.length - 1) {
-                    if (rIdx % 2 === 0) {
-                        let nextMatch = tournamentData.lowerMatches[rIdx + 1].matches[mIdx];
-                        if (nextMatch) nextMatch.team1 = winner;
-                    } else {
-                        let nextMatchIdx = Math.floor(mIdx / 2);
-                        let nextMatch = tournamentData.lowerMatches[rIdx + 1].matches[nextMatchIdx];
-                        if (nextMatch) nextMatch.team1 = winner;
-                    }
-                } else {
-                    tournamentData.grandFinal.team2 = winner;
-                }
-            }
-        });
+    tournamentData.lowerRounds.push({
+        title: "LOWER FINAL",
+        matches: [{
+            id: lowerMatchCounter++,
+            team1: "Pemenang Lower R1",
+            team2: "Kalah Upper Final",
+            score1: 0,
+            score2: 0,
+            winner: null,
+            loser: null
+        }]
     });
 }
 
-// 3. ROUND ROBIN
 function generateRoundRobin(teams) {
-    let list = [...teams];
-    if (list.length % 2 !== 0) list.push("BYE");
+    let groupMatches = [];
+    let matchId = 1;
 
-    let n = list.length;
-    let rounds = n - 1;
-    let matchId = 201;
-    tournamentData.schedule = [];
+    teams.forEach(t => {
+        tournamentData.standings[t] = { played: 0, won: 0, lost: 0, points: 0 };
+    });
 
-    for (let r = 0; r < rounds; r++) {
-        let roundMatches = [];
-        for (let i = 0; i < n / 2; i++) {
-            let t1 = list[i];
-            let t2 = list[n - 1 - i];
-            if (t1 !== "BYE" && t2 !== "BYE") {
-                roundMatches.push({
-                    id: matchId++,
-                    round: r + 1,
-                    team1: t1,
-                    team2: t2,
-                    score1: null,
-                    score2: null,
-                    status: 'pending'
-                });
-            }
+    for (let i = 0; i < teams.length; i++) {
+        for (let j = i + 1; j < teams.length; j++) {
+            groupMatches.push({
+                id: matchId++,
+                team1: teams[i],
+                team2: teams[j],
+                score1: 0,
+                score2: 0,
+                winner: null
+            });
         }
-        tournamentData.schedule.push({
-            name: `Pekan ${r + 1}`,
-            matches: roundMatches
-        });
-        list.splice(1, 0, list.pop());
     }
+
+    tournamentData.upperRounds = [{
+        title: "JADWAL MATCH FASE GRUP",
+        matches: groupMatches
+    }];
 }
 
-// RENDER VIEWS
-function renderTournamentView() {
+function recalculateGroupStandings() {
+    if (tournamentData.format !== 'round_robin') return;
+
+    tournamentData.teams.forEach(t => {
+        tournamentData.standings[t] = { played: 0, won: 0, lost: 0, points: 0 };
+    });
+
+    let matches = tournamentData.upperRounds[0].matches;
+    matches.forEach(m => {
+        if (m.winner) {
+            let t1 = m.team1;
+            let t2 = m.team2;
+
+            if (tournamentData.standings[t1]) {
+                tournamentData.standings[t1].played += 1;
+                if (m.winner === t1) {
+                    tournamentData.standings[t1].won += 1;
+                    tournamentData.standings[t1].points += 3;
+                } else {
+                    tournamentData.standings[t1].lost += 1;
+                }
+            }
+
+            if (tournamentData.standings[t2]) {
+                tournamentData.standings[t2].played += 1;
+                if (m.winner === t2) {
+                    tournamentData.standings[t2].won += 1;
+                    tournamentData.standings[t2].points += 3;
+                } else {
+                    tournamentData.standings[t2].lost += 1;
+                }
+            }
+        }
+    });
+}
+
+// ==========================================
+// RENDER BAGAN & LAYOUT
+// ==========================================
+function renderBracket() {
     const container = document.getElementById('bracketContainer');
     if (!container) return;
-    container.innerHTML = '';
 
-    if (tournamentData.format === 'single_elimination') {
-        renderSingleEliminationView(container);
-    } else if (tournamentData.format === 'double_elimination') {
-        renderDoubleEliminationView(container);
-    } else if (tournamentData.format === 'round_robin') {
-        renderRoundRobinView(container);
+    if (!tournamentData.upperRounds || tournamentData.upperRounds.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-sitemap"></i>
+                <p>Silakan login admin dan klik "Generate Bagan" untuk membuat skema pertandingan.</p>
+            </div>`;
+        return;
     }
+
+    if (tournamentData.format === 'round_robin') {
+        recalculateGroupStandings();
+        let html = `<div class="group-stage-container">`;
+        html += renderStandingsTable();
+        
+        html += `<div class="group-matches-box">`;
+        html += `<h3 class="standings-title"><i class="fa-solid fa-fire"></i> Jadwal Pertandingan</h3>`;
+        html += renderGroupMatchListVertical(tournamentData.upperRounds[0].matches);
+        html += `</div>`;
+        
+        html += `</div>`;
+        container.innerHTML = html;
+        return;
+    }
+
+    let html = `<div class="bracket-wrapper">`;
+    
+    // UPPER BRACKET / SINGLE ELIMINATION
+    html += `<div>`;
+    if (tournamentData.format === 'double_elimination') {
+        html += `<div class="bracket-section-title"><i class="fa-solid fa-angles-up"></i> UPPER BRACKET</div>`;
+    } else {
+        html += `<div class="bracket-section-title"><i class="fa-solid fa-trophy"></i> BAGAN PERTANDINGAN</div>`;
+    }
+    html += renderRoundsTree(tournamentData.upperRounds);
+    html += `</div>`;
+
+    // LOWER BRACKET
+    if (tournamentData.format === 'double_elimination' && tournamentData.lowerRounds.length > 0) {
+        html += `<div style="margin-top: 1.5rem;">`;
+        html += `<div class="bracket-section-title" style="color: #0d9488;"><i class="fa-solid fa-angles-down"></i> LOWER BRACKET</div>`;
+        html += renderRoundsTree(tournamentData.lowerRounds);
+        html += `</div>`;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
 }
 
-function renderMatchCardHTML(m) {
-    if (!m) return '';
-    const isClickable = isAdminLoggedIn && m.team1 !== 'TBD' && m.team2 !== 'TBD' && m.team1 !== 'BYE' && m.team2 !== 'BYE';
-    
-    return `
-        <div onclick="${isClickable ? `openScoreModal(${m.id})` : ''}" 
-             class="match-card bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs shadow-sm ${isClickable ? 'cursor-pointer hover:border-amber-500' : ''}">
-            <div class="flex justify-between items-center mb-1 ${m.score1 > m.score2 ? 'font-bold text-amber-400' : 'text-slate-300'}">
-                <span class="truncate max-w-[120px]">${m.team1}</span>
-                <span>${m.score1 !== null ? m.score1 : '-'}</span>
-            </div>
-            <div class="flex justify-between items-center ${m.score2 > m.score1 ? 'font-bold text-amber-400' : 'text-slate-300'}">
-                <span class="truncate max-w-[120px]">${m.team2}</span>
-                <span>${m.score2 !== null ? m.score2 : '-'}</span>
-            </div>
+function renderStandingsTable() {
+    let sortedTeams = [...tournamentData.teams].sort((a, b) => {
+        let pA = tournamentData.standings[a] ? tournamentData.standings[a].points : 0;
+        let pB = tournamentData.standings[b] ? tournamentData.standings[b].points : 0;
+        return pB - pA;
+    });
+
+    let html = `
+        <div class="standings-box">
+            <h3 class="standings-title"><i class="fa-solid fa-trophy"></i> Klasemen Sementara</h3>
+            <table class="standings-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th style="text-align: left;">Tim</th>
+                        <th>P</th>
+                        <th>W</th>
+                        <th>L</th>
+                        <th>PTS</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+    sortedTeams.forEach((t, idx) => {
+        let stat = tournamentData.standings[t] || { played: 0, won: 0, lost: 0, points: 0 };
+        let rankBadge = `<span class="rank-badge rank-other">${idx + 1}</span>`;
+        if (idx === 0) rankBadge = `<span class="rank-badge rank-1">1</span>`;
+        else if (idx === 1) rankBadge = `<span class="rank-badge rank-2">2</span>`;
+        else if (idx === 2) rankBadge = `<span class="rank-badge rank-3">3</span>`;
+
+        html += `
+            <tr>
+                <td>${rankBadge}</td>
+                <td class="team-cell"><i class="fa-solid fa-shield-halved team-icon"></i> ${t}</td>
+                <td><span class="stat-badge stat-p">${stat.played}</span></td>
+                <td><span class="stat-badge stat-w">${stat.won}</span></td>
+                <td><span class="stat-badge stat-l">${stat.lost}</span></td>
+                <td><span class="stat-badge stat-pts">${stat.points}</span></td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
         </div>
     `;
+
+    return html;
 }
 
-function renderSingleEliminationView(container) {
-    if (!tournamentData.matches) return;
-    let html = `<div class="flex gap-8 min-w-max p-2">`;
-    tournamentData.matches.forEach(round => {
+// RENDER MATCH FASE GRUP VERTIKAL
+function renderGroupMatchListVertical(matches) {
+    let html = `<div class="group-matches-vertical-list">`;
+    matches.forEach(match => {
+        let isCompleted = match.winner !== null;
+
         html += `
-            <div class="flex flex-col justify-around min-w-[200px] space-y-4">
-                <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400 text-center pb-2 border-b border-slate-800">${round.name}</h4>
-                <div class="flex flex-col justify-around flex-1 space-y-4">
+            <div class="group-match-row-card ${isCompleted ? 'is-done' : ''}">
+                <div class="match-info-meta">
+                    <span class="match-badge">Match #${match.id}</span>
+                    <span class="status-pill ${isCompleted ? 'status-done' : 'status-pending'}">
+                        ${isCompleted ? 'Selesai' : 'Pending'}
+                    </span>
+                </div>
+
+                <div class="match-teams-versus">
+                    <div class="row-team-box team-left ${match.winner === match.team1 ? 'is-winner' : ''}">
+                        <span class="row-team-name">${match.team1}</span>
+                        <span class="row-team-score">${match.score1}</span>
+                    </div>
+
+                    <span class="vs-badge-row">VS</span>
+
+                    <div class="row-team-box team-right ${match.winner === match.team2 ? 'is-winner' : ''}">
+                        <span class="row-team-score">${match.score2}</span>
+                        <span class="row-team-name">${match.team2}</span>
+                    </div>
+                </div>
+
+                ${isAdminLoggedIn ? `
+                    <button onclick="openScoreModal(${match.id})" class="btn-row-edit">
+                        <i class="fa-solid fa-pen-to-square"></i> Skor
+                    </button>
+                ` : ''}
+            </div>
         `;
-        round.matches.forEach(m => { html += renderMatchCardHTML(m); });
-        html += `</div></div>`;
     });
     html += `</div>`;
-    container.innerHTML = html;
+    return html;
 }
 
-function renderDoubleEliminationView(container) {
-    if (!tournamentData.upperMatches || !tournamentData.lowerMatches) return;
-    let html = `
-        <div class="mb-6">
-            <h3 class="text-amber-400 font-bold text-sm uppercase mb-3"><i class="fa-solid fa-arrow-up-right-dots"></i> Upper Bracket</h3>
-            <div class="flex gap-8 min-w-max p-2 overflow-x-auto">
-    `;
-    tournamentData.upperMatches.forEach(round => {
-        html += `
-            <div class="flex flex-col justify-around min-w-[200px] space-y-4">
-                <h4 class="text-xs font-bold uppercase text-amber-500 text-center pb-2 border-b border-slate-800">${round.name}</h4>
-                <div class="flex flex-col justify-around flex-1 space-y-4">
-        `;
-        round.matches.forEach(m => { html += renderMatchCardHTML(m); });
-        html += `</div></div>`;
-    });
+// RENDER BRACKET TREE
+function renderRoundsTree(rounds) {
+    let html = `<div class="bracket-tree">`;
+    rounds.forEach(round => {
+        html += `<div class="bracket-round">`;
+        html += `<div class="round-header-title">${round.title}</div>`;
 
-    html += `</div></div><div class="pt-4 border-t border-slate-800 mb-6">
-            <h3 class="text-rose-400 font-bold text-sm uppercase mb-3"><i class="fa-solid fa-arrow-down-left-dots"></i> Lower Bracket</h3>
-            <div class="flex gap-8 min-w-max p-2 overflow-x-auto">`;
+        round.matches.forEach(match => {
+            let isCompleted = match.winner !== null;
 
-    tournamentData.lowerMatches.forEach(round => {
-        html += `
-            <div class="flex flex-col justify-around min-w-[200px] space-y-4">
-                <h4 class="text-xs font-bold uppercase text-rose-400 text-center pb-2 border-b border-slate-800">${round.name}</h4>
-                <div class="flex flex-col justify-around flex-1 space-y-4">
-        `;
-        round.matches.forEach(m => { html += renderMatchCardHTML(m); });
-        html += `</div></div>`;
-    });
+            html += `
+                <div class="tree-match-card ${isCompleted ? 'completed' : ''}">
+                    <div class="tree-match-header">
+                        <span>Match #${match.id}</span>
+                        <span>${isCompleted ? 'SELESAI' : 'PENDING'}</span>
+                    </div>
 
-    html += `</div></div><div class="pt-4 border-t border-slate-800">
-            <h3 class="text-emerald-400 font-bold text-sm uppercase mb-3"><i class="fa-solid fa-crown"></i> Grand Final</h3>
-            <div class="flex justify-center p-2">${renderMatchCardHTML(tournamentData.grandFinal)}</div>
-        </div>`;
+                    <div class="tree-team-item ${match.winner === match.team1 && match.team1 !== 'BYE' && match.team1 !== 'TBD' ? 'winner' : ''}">
+                        <span class="tree-team-name">${match.team1}</span>
+                        <span class="tree-team-score">${match.score1}</span>
+                    </div>
 
-    container.innerHTML = html;
-}
+                    <div class="tree-team-item ${match.winner === match.team2 && match.team2 !== 'BYE' && match.team2 !== 'TBD' ? 'winner' : ''}">
+                        <span class="tree-team-name">${match.team2}</span>
+                        <span class="tree-team-score">${match.score2}</span>
+                    </div>
 
-function renderRoundRobinView(container) {
-    if (!tournamentData.schedule) return;
-    let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">`;
-    tournamentData.schedule.forEach(round => {
-        html += `
-            <div class="bg-slate-900 border border-slate-800 rounded-lg p-4">
-                <h4 class="text-xs font-bold uppercase text-amber-400 mb-3 pb-2 border-b border-slate-800 text-center">${round.name}</h4>
-                <div class="space-y-3">
-        `;
-        round.matches.forEach(m => { html += renderMatchCardHTML(m); });
-        html += `</div></div>`;
+                    ${isAdminLoggedIn && match.team2 !== 'BYE' && match.team1 !== 'TBD' && match.team2 !== 'TBD' ? `
+                        <button onclick="openScoreModal(${match.id})" class="btn-tree-edit">
+                            <i class="fa-solid fa-pen"></i> Edit Skor
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        });
+        html += `</div>`;
     });
     html += `</div>`;
-    container.innerHTML = html;
+    return html;
 }
 
-// SCORE MODAL LOGIC
-function openScoreModal(matchId) {
-    let match = findMatchById(matchId);
-    if (!match) return;
+// ==========================================
+// EDIT SKOR MODAL & UPDATE HASIL
+// ==========================================
+window.openScoreModal = function(matchId) {
+    if (!isAdminLoggedIn) return;
 
-    document.getElementById('modalMatchId').value = match.id;
-    document.getElementById('modalTeam1Name').textContent = match.team1;
-    document.getElementById('modalTeam2Name').textContent = match.team2;
-    document.getElementById('scoreTeam1').value = match.score1 !== null ? match.score1 : '';
-    document.getElementById('scoreTeam2').value = match.score2 !== null ? match.score2 : '';
+    let targetMatch = null;
+    let allRounds = [...tournamentData.upperRounds, ...tournamentData.lowerRounds];
+
+    for (let r of allRounds) {
+        let found = r.matches.find(m => m.id === matchId);
+        if (found) { targetMatch = found; break; }
+    }
+
+    if (!targetMatch) return;
+
+    document.getElementById('modalMatchId').value = targetMatch.id;
+    document.getElementById('modalTeam1Name').innerText = targetMatch.team1;
+    document.getElementById('modalTeam2Name').innerText = targetMatch.team2;
+    document.getElementById('scoreTeam1').value = targetMatch.score1;
+    document.getElementById('scoreTeam2').value = targetMatch.score2;
 
     document.getElementById('scoreModal').classList.remove('hidden');
-}
+};
 
-function saveMatchScore() {
-    let matchId = parseInt(document.getElementById('modalMatchId').value);
-    let match = findMatchById(matchId);
+function saveScoreFromModal() {
+    const matchId = parseInt(document.getElementById('modalMatchId').value);
+    const score1 = parseInt(document.getElementById('scoreTeam1').value) || 0;
+    const score2 = parseInt(document.getElementById('scoreTeam2').value) || 0;
 
-    if (match) {
-        let s1 = document.getElementById('scoreTeam1').value;
-        let s2 = document.getElementById('scoreTeam2').value;
+    let currentMatch = null;
+    let isUpper = false;
+    let roundIndex = -1;
+    let matchIndex = -1;
 
-        match.score1 = s1 !== "" ? parseInt(s1) : null;
-        match.score2 = s2 !== "" ? parseInt(s2) : null;
-        match.status = 'completed';
+    for (let r = 0; r < tournamentData.upperRounds.length; r++) {
+        let idx = tournamentData.upperRounds[r].matches.findIndex(m => m.id === matchId);
+        if (idx !== -1) {
+            currentMatch = tournamentData.upperRounds[r].matches[idx];
+            isUpper = true;
+            roundIndex = r;
+            matchIndex = idx;
+            break;
+        }
+    }
 
-        if (tournamentData.format === 'double_elimination') {
-            recalculateDoubleElim();
-        } else if (tournamentData.format === 'single_elimination') {
-            recalculateSingleElim();
+    if (!currentMatch) {
+        for (let r = 0; r < tournamentData.lowerRounds.length; r++) {
+            let idx = tournamentData.lowerRounds[r].matches.findIndex(m => m.id === matchId);
+            if (idx !== -1) {
+                currentMatch = tournamentData.lowerRounds[r].matches[idx];
+                isUpper = false;
+                roundIndex = r;
+                matchIndex = idx;
+                break;
+            }
+        }
+    }
+
+    if (currentMatch) {
+        currentMatch.score1 = score1;
+        currentMatch.score2 = score2;
+
+        if (score1 > score2) {
+            currentMatch.winner = currentMatch.team1;
+            currentMatch.loser = currentMatch.team2;
+        } else if (score2 > score1) {
+            currentMatch.winner = currentMatch.team2;
+            currentMatch.loser = currentMatch.team1;
+        } else {
+            currentMatch.winner = null;
+            currentMatch.loser = null;
         }
 
-        saveToLocalStorage();
-        renderTournamentView();
-        closeScoreModal();
-    }
-}
+        if (isUpper && tournamentData.format !== 'round_robin') {
+            if (roundIndex + 1 < tournamentData.upperRounds.length) {
+                let nextMatches = tournamentData.upperRounds[roundIndex + 1].matches;
+                let nextMatchIndex = Math.floor(matchIndex / 2);
+                let nextMatch = nextMatches[nextMatchIndex];
 
-function findMatchById(matchId) {
-    if (tournamentData.format === 'single_elimination') {
-        return tournamentData.matches.flatMap(r => r.matches).find(m => m.id === matchId);
-    } else if (tournamentData.format === 'double_elimination') {
-        let allUpper = tournamentData.upperMatches.flatMap(r => r.matches);
-        let allLower = tournamentData.lowerMatches.flatMap(r => r.matches);
-        return [...allUpper, ...allLower, tournamentData.grandFinal].find(m => m && m.id === matchId);
-    } else if (tournamentData.format === 'round_robin') {
-        return tournamentData.schedule.flatMap(r => r.matches).find(m => m.id === matchId);
-    }
-    return null;
-}
-
-// FIREBASE DATABASE LOGIC
-function saveToLocalStorage() {
-    if (window.fbDB && window.fbRef && window.fbSet) {
-        const tournamentRef = window.fbRef(window.fbDB, 'tournamentData');
-        window.fbSet(tournamentRef, tournamentData)
-            .then(() => console.log("Data berhasil disinkronkan ke Firebase!"))
-            .catch((err) => console.error("Gagal menyimpan ke Firebase:", err));
-    }
-}
-
-function loadFromLocalStorage() {
-    if (window.fbDB && window.fbRef && window.fbOnValue) {
-        const tournamentRef = window.fbRef(window.fbDB, 'tournamentData');
-        window.fbOnValue(tournamentRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                tournamentData = data;
-                if (tournamentData.teams && tournamentData.teams.length > 0) {
-                    const teamsInput = document.getElementById('teamsInput');
-                    const formatInput = document.getElementById('tournamentFormat');
-                    if (teamsInput) teamsInput.value = tournamentData.teams.join('\n');
-                    if (formatInput) formatInput.value = tournamentData.format;
+                if (nextMatch) {
+                    if (matchIndex % 2 === 0) nextMatch.team1 = currentMatch.winner || "TBD";
+                    else nextMatch.team2 = currentMatch.winner || "TBD";
                 }
-                renderTournamentView();
             }
-        });
+
+            if (tournamentData.format === 'double_elimination' && roundIndex === 0 && tournamentData.lowerRounds.length > 0) {
+                let lowerR1Matches = tournamentData.lowerRounds[0].matches;
+                let targetLowerMatchIndex = Math.floor(matchIndex / 2);
+                let targetLowerMatch = lowerR1Matches[targetLowerMatchIndex];
+
+                if (targetLowerMatch) {
+                    if (matchIndex % 2 === 0) targetLowerMatch.team1 = currentMatch.loser || "Kalah Upper #1";
+                    else targetLowerMatch.team2 = currentMatch.loser || "Kalah Upper #2";
+                }
+            }
+        }
+
+        saveLocalData();
+        renderBracket();
+        document.getElementById('scoreModal').classList.add('hidden');
     }
 }
 
-// FITUR SIMPAN DATA (DOWNLOAD JSON)
-function exportTournamentData() {
-    if (!tournamentData || !tournamentData.teams || tournamentData.teams.length === 0) {
-        alert("⚠️ Belum ada data turnamen! Silakan isi daftar tim dan klik 'Generate Bagan' terlebih dahulu.");
-        return;
-    }
+// ==========================================
+// STORAGE & EXPORT
+// ==========================================
+function saveLocalData() {
+    localStorage.setItem('mlbb_bracket_data', JSON.stringify(tournamentData));
+}
 
-    try {
-        const tName = document.getElementById('tournamentName')?.value || "Turnamen";
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tournamentData, null, 2));
-        
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        
-        const safeFileName = tName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const dateStr = new Date().toISOString().slice(0, 10);
-        downloadAnchor.setAttribute("download", `${safeFileName}_${tournamentData.format}_${dateStr}.json`);
-        
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-    } catch (err) {
-        alert("Gagal mengunduh file: " + err.message);
+function loadLocalData() {
+    const saved = localStorage.getItem('mlbb_bracket_data');
+    if (saved) {
+        try {
+            tournamentData = JSON.parse(saved);
+            if (tournamentData.teams && tournamentData.teams.length > 0) {
+                document.getElementById('teamsInput').value = tournamentData.teams.join('\n');
+            }
+            if (tournamentData.format) {
+                document.getElementById('tournamentFormat').value = tournamentData.format;
+            }
+            renderBracket();
+        } catch (e) {
+            console.error(e);
+        }
     }
 }
 
-// FITUR ARSIPKAN DATA KE FIREBASE CLOUD
-function archiveTournamentData() {
-    if (!tournamentData || !tournamentData.teams || tournamentData.teams.length === 0) {
-        alert("⚠️ Belum ada data turnamen! Silakan isi daftar tim dan klik 'Generate Bagan' terlebih dahulu.");
+function exportDataJSON() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tournamentData, null, 2));
+    const a = document.createElement('a');
+    a.setAttribute("href", dataStr);
+    a.setAttribute("download", `mlbb_bracket_${Date.now()}.json`);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+function archiveToFirebase() {
+    if (!isAdminLoggedIn) {
+        alert("Akses Ditolak! Silakan Login Admin terlebih dahulu.");
         return;
     }
 
-    if (!window.fbDB || !window.fbRef || !window.fbPush) {
-        alert("❌ Database Firebase belum terhubung. Pastikan HP/Laptop terhubung ke internet.");
-        return;
-    }
-
-    const tName = document.getElementById('tournamentName')?.value || "Turnamen E-Sport";
-    const archiveListRef = window.fbRef(window.fbDB, 'archives');
-    
-    const payload = {
-        tournamentTitle: tName,
-        archivedAt: new Date().toLocaleString('id-ID'),
-        timestamp: Date.now(),
-        data: tournamentData
-    };
-
-    window.fbPush(archiveListRef, payload)
-        .then(() => {
-            alert(`✅ Berhasil! Turnamen "${tName}" telah diarsipkan secara permanen ke Firebase Cloud.`);
-        })
-        .catch((err) => {
-            alert("❌ Gagal mengarsipkan ke Firebase: " + err.message);
+    if (window.fbDB && window.fbRef && window.fbPush) {
+        const archiveRef = window.fbRef(window.fbDB, 'mlbb_archives');
+        window.fbPush(archiveRef, {
+            ...tournamentData,
+            archivedAt: new Date().toISOString()
+        }).then(() => {
+            alert("Data berhasil diarsipkan ke Firebase!");
+        }).catch((err) => {
+            alert("Gagal mengarsipkan: " + err.message);
         });
+    } else {
+        alert("Konfigurasi Firebase belum diisi.");
+    }
 }
