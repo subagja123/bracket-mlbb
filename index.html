@@ -4,50 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Manajemen Turnamen</title>
-    <!-- index.html -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Manajemen Turnamen</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
 
-    <!-- FIREBASE SDK & INITIALIZATION -->
-    <!-- Taruh tepat di atas <script src="script.js"></script> -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-        // Firebase Configuration dari foto kamu
-        const firebaseConfig = {
-            apiKey: "AIzaSyAFhpL0M5JfsdS71hlVU7xBK0lnno9tGlw",
-            authDomain: "e-sport-lppm-ri.firebaseapp.com",
-            databaseURL: "https://e-sport-lppm-ri-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "e-sport-lppm-ri",
-            storageBucket: "e-sport-lppm-ri.firebasestorage.app",
-            messagingSenderId: "960625264175",
-            appId: "1:960625264175:web:20729654a789a3627568da",
-            measurementId: "G-ZGZ4X7FRHZ"
-        };
-
-        // Inisialisasi Firebase & Realtime Database
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-
-        // Ekspor ke window agar bisa dipakai di script.js
-        window.fbDB = database;
-        window.fbRef = ref;
-        window.fbSet = set;
-        window.fbOnValue = onValue;
-    </script>
-
-    <script src="script.js"></script>
-</body>
-</html>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
@@ -177,6 +139,32 @@
         </div>
     </div>
 
+    <!-- FIREBASE SDK & INITIALIZATION -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFhpL0M5JfsdS71hlVU7xBK0lnno9tGlw",
+            authDomain: "e-sport-lppm-ri.firebaseapp.com",
+            databaseURL: "https://e-sport-lppm-ri-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "e-sport-lppm-ri",
+            storageBucket: "e-sport-lppm-ri.firebasestorage.app",
+            messagingSenderId: "960625264175",
+            appId: "1:960625264175:web:20729654a789a3627568da",
+            measurementId: "G-ZGZ4X7FRHZ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        window.fbDB = database;
+        window.fbRef = ref;
+        window.fbSet = set;
+        window.fbOnValue = onValue;
+    </script>
+
+    <!-- SCRIPT UTAMA -->
     <script src="script.js"></script>
 </body>
 </html>
