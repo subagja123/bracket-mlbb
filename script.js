@@ -530,17 +530,29 @@ function findMatchById(matchId) {
 
 // LOCAL STORAGE
 function saveToLocalStorage() {
-    localStorage.setItem('tournamentData', JSON.stringify(tournamentData));
+    if (window.fbDB) {
+        const tournamentRef = window.fbRef(window.fbDB, 'tournamentData');
+        window.fbSet(tournamentRef, tournamentData)
+            .then(() => console.log("Data berhasil disinkronkan ke Firebase!"))
+            .catch((err) => console.error("Gagal menyimpan ke Firebase:", err));
+    }
 }
 
 function loadFromLocalStorage() {
-    const saved = localStorage.getItem('tournamentData');
-    if (saved) {
-        tournamentData = JSON.parse(saved);
-        if (tournamentData.teams && tournamentData.teams.length > 0) {
-            document.getElementById('teamsInput').value = tournamentData.teams.join('\n');
-            document.getElementById('tournamentFormat').value = tournamentData.format;
-            renderTournamentView();
-        }
+    if (window.fbDB) {
+        const tournamentRef = window.fbRef(window.fbDB, 'tournamentData');
+        
+        // Mendengarkan perubahan data secara otomatis (Realtime Listener)
+        window.fbOnValue(tournamentRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                tournamentData = data;
+                if (tournamentData.teams && tournamentData.teams.length > 0) {
+                    document.getElementById('teamsInput').value = tournamentData.teams.join('\n');
+                    document.getElementById('tournamentFormat').value = tournamentData.format;
+                }
+                renderTournamentView();
+            }
+        });
     }
 }
