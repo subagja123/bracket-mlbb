@@ -214,39 +214,37 @@ function generateSingleEliminationTree(teams) {
 function generateDoubleElimination(teams) {
     generateSingleEliminationTree(teams);
 
-    let upperR1Count = tournamentData.upperRounds[0].matches.length;
     let lowerMatchCounter = 101;
 
-    let lowerR1Matches = [];
-    for (let i = 0; i < Math.floor(upperR1Count / 2); i++) {
-        lowerR1Matches.push({
-            id: lowerMatchCounter++,
-            team1: "Kalah Upper #1",
-            team2: "Kalah Upper #2",
-            score1: 0,
-            score2: 0,
-            winner: null,
-            loser: null
-        });
-    }
+    // 1. LOWER ROUND 1 (2 Match: Pertemuan 4 tim yang kalah dari Upper Round 1)
+    let lowerR1Matches = [
+        { id: lowerMatchCounter++, team1: "Kalah Upper R1 #1", team2: "Kalah Upper R1 #2", score1: 0, score2: 0, winner: null, loser: null },
+        { id: lowerMatchCounter++, team1: "Kalah Upper R1 #3", team2: "Kalah Upper R1 #4", score1: 0, score2: 0, winner: null, loser: null }
+    ];
 
-    tournamentData.lowerRounds.push({
-        title: "LOWER ROUND 1",
-        matches: lowerR1Matches
-    });
+    // 2. LOWER ROUND 2 (2 Match: Pemenang Lower R1 vs Tim yang Kalah dari Upper Semi Final)
+    let lowerR2Matches = [
+        { id: lowerMatchCounter++, team1: "Pemenang Lower R1 #1", team2: "Kalah Upper Semi #1", score1: 0, score2: 0, winner: null, loser: null },
+        { id: lowerMatchCounter++, team1: "Pemenang Lower R1 #2", team2: "Kalah Upper Semi #2", score1: 0, score2: 0, winner: null, loser: null }
+    ];
 
-    tournamentData.lowerRounds.push({
-        title: "LOWER FINAL",
-        matches: [{
-            id: lowerMatchCounter++,
-            team1: "Pemenang Lower R1",
-            team2: "Kalah Upper Final",
-            score1: 0,
-            score2: 0,
-            winner: null,
-            loser: null
-        }]
-    });
+    // 3. LOWER SEMI FINAL (1 Match: Pertemuan 2 Pemenang dari Lower Round 2)
+    let lowerR3Matches = [
+        { id: lowerMatchCounter++, team1: "Pemenang Lower R2 #1", team2: "Pemenang Lower R2 #2", score1: 0, score2: 0, winner: null, loser: null }
+    ];
+
+    // 4. LOWER FINAL (1 Match: Pemenang Lower Semi Final vs Tim yang Kalah dari Upper Final)
+    let lowerFinalMatches = [
+        { id: lowerMatchCounter++, team1: "Pemenang Lower Semi", team2: "Kalah Upper Final", score1: 0, score2: 0, winner: null, loser: null }
+    ];
+
+    // Masukkan semua babak ke dalam tournamentData.lowerRounds
+    tournamentData.lowerRounds = [
+        { title: "LOWER ROUND 1", matches: lowerR1Matches },
+        { title: "LOWER ROUND 2", matches: lowerR2Matches },
+        { title: "LOWER SEMI FINAL", matches: lowerR3Matches },
+        { title: "LOWER FINAL", matches: lowerFinalMatches }
+    ];
 }
 
 function generateRoundRobin(teams) {
