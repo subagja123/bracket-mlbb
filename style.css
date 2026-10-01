@@ -527,11 +527,46 @@ body {
 .text-error { color: #ef4444; font-size: 0.75rem; margin-top: 4px; }
 .text-error.hidden { display: none; }
 
-.score-input-grid { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.team-score-box { flex: 1; text-align: center; }
-.team-label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: #e2e8f0; }
-.team-score-box input { text-align: center; font-size: 1.2rem; font-weight: 800; padding: 0.5rem; }
-.vs-badge { font-weight: 800; color: #64748b; font-size: 0.9rem; }
+.score-input-grid { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    gap: 10px; 
+    width: 100%;
+}
+
+.team-score-box { 
+    flex: 1; 
+    min-width: 0; 
+    text-align: center; 
+}
+
+.team-label { 
+    display: block; 
+    font-size: 0.8rem; 
+    font-weight: 600; 
+    margin-bottom: 6px; 
+    color: #e2e8f0; 
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.team-score-box input { 
+    width: 100%; 
+    text-align: center; 
+    font-size: 1.2rem; 
+    font-weight: 800; 
+    padding: 0.5rem; 
+    box-sizing: border-box;
+}
+
+.vs-badge { 
+    font-weight: 800; 
+    color: #64748b; 
+    font-size: 0.9rem; 
+    flex-shrink: 0;
+}
 
 /* RESPONSIVE LAYOUT LAYAR KECIL */
 @media (max-width: 992px) {
