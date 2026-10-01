@@ -65,6 +65,16 @@
                     <button id="btnGenerate" type="button" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-400 py-2.5 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-diagram-project"></i> Generate Bagan
                     </button>
+
+                    <!-- TOMBOL FITUR SIMPAN DATA -->
+                    <div class="pt-3 border-t border-slate-800 space-y-2">
+                        <button id="btnExport" type="button" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-arrow-down"></i> Download Data (JSON)
+                        </button>
+                        <button id="btnArchive" type="button" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-400 py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-box-archive"></i> Arsipkan Ke Cloud Firebase
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -142,7 +152,7 @@
     <!-- FIREBASE SDK & INITIALIZATION -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFhpL0M5JfsdS71hlVU7xBK0lnno9tGlw",
@@ -161,6 +171,7 @@
         window.fbDB = database;
         window.fbRef = ref;
         window.fbSet = set;
+        window.fbPush = push;
         window.fbOnValue = onValue;
     </script>
 

@@ -27,7 +27,7 @@ function initEvents() {
         }
     });
 
-    // Login Form Submit (Direct Handling & preventDefault)
+    // Login Form Submit
     document.getElementById('adminLoginForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const pwd = document.getElementById('adminPassword').value;
@@ -48,6 +48,10 @@ function initEvents() {
 
     // Generate Button
     document.getElementById('btnGenerate').addEventListener('click', generateTournament);
+
+    // Tombol Export & Archive Data
+    document.getElementById('btnExport').addEventListener('click', exportTournamentData);
+    document.getElementById('btnArchive').addEventListener('click', archiveTournamentData);
 }
 
 function updateAdminUI() {
@@ -190,7 +194,6 @@ function generateDoubleElimination(teams) {
 
     let matchId = 101;
     
-    // Upper Bracket
     tournamentData.upperMatches = [];
     let upperRoundTeams = [...currentRoundTeams];
 
@@ -228,7 +231,6 @@ function generateDoubleElimination(teams) {
         });
     }
 
-    // Lower Bracket
     tournamentData.lowerMatches = [];
     let lowerRoundsCount = (numRounds - 1) * 2;
     let currentMatchCount = Math.pow(2, numRounds - 2);
@@ -257,7 +259,6 @@ function generateDoubleElimination(teams) {
         }
     }
 
-    // Grand Final
     tournamentData.grandFinal = {
         id: matchId++,
         round: "Grand Final",
@@ -528,7 +529,7 @@ function findMatchById(matchId) {
     return null;
 }
 
-// LOCAL STORAGE
+// FIREBASE DATABASE LOGIC
 function saveToLocalStorage() {
     if (window.fbDB) {
         const tournamentRef = window.fbRef(window.fbDB, 'tournamentData');
@@ -541,8 +542,6 @@ function saveToLocalStorage() {
 function loadFromLocalStorage() {
     if (window.fbDB) {
         const tournamentRef = window.fbRef(window.fbDB, 'tournamentData');
-        
-        // Mendengarkan perubahan data secara otomatis (Realtime Listener)
         window.fbOnValue(tournamentRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -555,4 +554,50 @@ function loadFromLocalStorage() {
             }
         });
     }
+}
+
+// FITUR SIMPAN DATA (DOWNLOAD JSON)
+function exportTournamentData() {
+    if (!tournamentData.teams || tournamentData.teams.length === 0) {
+        alert("Belum ada data turnamen untuk diunduh!");
+        return;
+    }
+    const tName = document.getElementById('tournamentName').value || "Turnamen";
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tournamentData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    
+    const fileName = `${tName.replace(/\s+/g, '_')}_${tournamentData.format}.json`;
+    downloadAnchor.setAttribute("download", fileName);
+    
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+}
+
+// FITUR ARSIPKAN DATA KE FIREBASE CLOUD
+function archiveTournamentData() {
+    if (!tournamentData.teams || tournamentData.teams.length === 0) {
+        alert("Belum ada data turnamen untuk diarsipkan!");
+        return;
+    }
+
+    if (!window.fbDB) {
+        alert("Koneksi Firebase belum siap!");
+        return;
+    }
+
+    const tName = document.getElementById('tournamentName').value || "Turnamen E-Sport";
+    const archiveListRef = window.fbRef(window.fbDB, 'archives');
+    
+    // Menyimpan turnamen sebagai riwayat permanen di node /archives/
+    window.fbPush(archiveListRef, {
+        tournamentTitle: tName,
+        archivedAt: new Date().toLocaleString('id-ID'),
+        data: tournamentData
+    }).then(() => {
+        alert(`Berhasil mengarsipkan turnamen "${tName}" ke Firebase Cloud! Data aman & tersimpan.`);
+    }).catch(err => {
+        alert("Gagal mengarsipkan: " + err.message);
+    });
 }
