@@ -17,41 +17,55 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initEvents() {
-    // Admin Auth Button
-    document.getElementById('btnAdminAuth').addEventListener('click', () => {
-        if (isAdminLoggedIn) {
-            isAdminLoggedIn = false;
-            updateAdminUI();
-        } else {
-            openLoginModal();
-        }
-    });
+    // Tombol Generate
+    const btnGenerate = document.getElementById('btnGenerate');
+    if (btnGenerate) btnGenerate.addEventListener('click', generateTournament);
 
-    // Login Form Submit
-    document.getElementById('adminLoginForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const pwd = document.getElementById('adminPassword').value;
-        if (pwd === '2528') { // Default Password Admin
-            isAdminLoggedIn = true;
-            document.getElementById('loginError').classList.add('hidden');
-            closeLoginModal();
-            updateAdminUI();
-        } else {
-            document.getElementById('loginError').classList.remove('hidden');
-        }
-    });
+    // Tombol Export JSON
+    const btnExport = document.getElementById('btnExport');
+    if (btnExport) btnExport.addEventListener('click', exportTournamentData);
 
-    // Close Modals
-    document.getElementById('btnCloseLoginModal').addEventListener('click', closeLoginModal);
-    document.getElementById('btnCloseScoreModal').addEventListener('click', closeScoreModal);
-    document.getElementById('btnSaveScore').addEventListener('click', saveMatchScore);
+    // Tombol Archive Firebase
+    const btnArchive = document.getElementById('btnArchive');
+    if (btnArchive) btnArchive.addEventListener('click', archiveTournamentData);
 
-    // Generate Button
-    document.getElementById('btnGenerate').addEventListener('click', generateTournament);
+    // Admin Auth
+    const btnAdminAuth = document.getElementById('btnAdminAuth');
+    if (btnAdminAuth) {
+        btnAdminAuth.addEventListener('click', () => {
+            if (isAdminLoggedIn) {
+                isAdminLoggedIn = false;
+                updateAdminUI();
+            } else {
+                openLoginModal();
+            }
+        });
+    }
 
-    // Tombol Export & Archive Data
-    document.getElementById('btnExport').addEventListener('click', exportTournamentData);
-    document.getElementById('btnArchive').addEventListener('click', archiveTournamentData);
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    if (adminLoginForm) {
+        adminLoginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pwd = document.getElementById('adminPassword').value;
+            if (pwd === '2528') {
+                isAdminLoggedIn = true;
+                document.getElementById('loginError').classList.add('hidden');
+                closeLoginModal();
+                updateAdminUI();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        });
+    }
+
+    const btnCloseLoginModal = document.getElementById('btnCloseLoginModal');
+    if (btnCloseLoginModal) btnCloseLoginModal.addEventListener('click', closeLoginModal);
+
+    const btnCloseScoreModal = document.getElementById('btnCloseScoreModal');
+    if (btnCloseScoreModal) btnCloseScoreModal.addEventListener('click', closeScoreModal);
+
+    const btnSaveScore = document.getElementById('btnSaveScore');
+    if (btnSaveScore) btnSaveScore.addEventListener('click', saveMatchScore);
 }
 
 function updateAdminUI() {
@@ -59,11 +73,11 @@ function updateAdminUI() {
     const nameInput = document.getElementById('tournamentName');
 
     if (isAdminLoggedIn) {
-        authText.textContent = "Logout Admin";
-        nameInput.removeAttribute('readonly');
+        if (authText) authText.textContent = "Logout Admin";
+        if (nameInput) nameInput.removeAttribute('readonly');
     } else {
-        authText.textContent = "Login Admin";
-        nameInput.setAttribute('readonly', 'true');
+        if (authText) authText.textContent = "Login Admin";
+        if (nameInput) nameInput.setAttribute('readonly', 'true');
     }
     renderTournamentView();
 }
@@ -180,7 +194,7 @@ function recalculateSingleElim() {
     });
 }
 
-// 2. DYNAMIC DOUBLE ELIMINATION
+// 2. DOUBLE ELIMINATION
 function generateDoubleElimination(teams) {
     let numTeams = teams.length;
     let numRounds = Math.ceil(Math.log2(numTeams));
@@ -381,6 +395,7 @@ function generateRoundRobin(teams) {
 // RENDER VIEWS
 function renderTournamentView() {
     const container = document.getElementById('bracketContainer');
+    if (!container) return;
     container.innerHTML = '';
 
     if (tournamentData.format === 'single_elimination') {
@@ -393,6 +408,7 @@ function renderTournamentView() {
 }
 
 function renderMatchCardHTML(m) {
+    if (!m) return '';
     const isClickable = isAdminLoggedIn && m.team1 !== 'TBD' && m.team2 !== 'TBD' && m.team1 !== 'BYE' && m.team2 !== 'BYE';
     
     return `
@@ -411,6 +427,7 @@ function renderMatchCardHTML(m) {
 }
 
 function renderSingleEliminationView(container) {
+    if (!tournamentData.matches) return;
     let html = `<div class="flex gap-8 min-w-max p-2">`;
     tournamentData.matches.forEach(round => {
         html += `
@@ -426,6 +443,7 @@ function renderSingleEliminationView(container) {
 }
 
 function renderDoubleEliminationView(container) {
+    if (!tournamentData.upperMatches || !tournamentData.lowerMatches) return;
     let html = `
         <div class="mb-6">
             <h3 class="text-amber-400 font-bold text-sm uppercase mb-3"><i class="fa-solid fa-arrow-up-right-dots"></i> Upper Bracket</h3>
@@ -464,6 +482,7 @@ function renderDoubleEliminationView(container) {
 }
 
 function renderRoundRobinView(container) {
+    if (!tournamentData.schedule) return;
     let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">`;
     tournamentData.schedule.forEach(round => {
         html += `
@@ -531,7 +550,7 @@ function findMatchById(matchId) {
 
 // FIREBASE DATABASE LOGIC
 function saveToLocalStorage() {
-    if (window.fbDB) {
+    if (window.fbDB && window.fbRef && window.fbSet) {
         const tournamentRef = window.fbRef(window.fbDB, 'tournamentData');
         window.fbSet(tournamentRef, tournamentData)
             .then(() => console.log("Data berhasil disinkronkan ke Firebase!"))
@@ -540,15 +559,17 @@ function saveToLocalStorage() {
 }
 
 function loadFromLocalStorage() {
-    if (window.fbDB) {
+    if (window.fbDB && window.fbRef && window.fbOnValue) {
         const tournamentRef = window.fbRef(window.fbDB, 'tournamentData');
         window.fbOnValue(tournamentRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 tournamentData = data;
                 if (tournamentData.teams && tournamentData.teams.length > 0) {
-                    document.getElementById('teamsInput').value = tournamentData.teams.join('\n');
-                    document.getElementById('tournamentFormat').value = tournamentData.format;
+                    const teamsInput = document.getElementById('teamsInput');
+                    const formatInput = document.getElementById('tournamentFormat');
+                    if (teamsInput) teamsInput.value = tournamentData.teams.join('\n');
+                    if (formatInput) formatInput.value = tournamentData.format;
                 }
                 renderTournamentView();
             }
@@ -558,46 +579,57 @@ function loadFromLocalStorage() {
 
 // FITUR SIMPAN DATA (DOWNLOAD JSON)
 function exportTournamentData() {
-    if (!tournamentData.teams || tournamentData.teams.length === 0) {
-        alert("Belum ada data turnamen untuk diunduh!");
+    if (!tournamentData || !tournamentData.teams || tournamentData.teams.length === 0) {
+        alert("⚠️ Belum ada data turnamen! Silakan isi daftar tim dan klik 'Generate Bagan' terlebih dahulu.");
         return;
     }
-    const tName = document.getElementById('tournamentName').value || "Turnamen";
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tournamentData, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    
-    const fileName = `${tName.replace(/\s+/g, '_')}_${tournamentData.format}.json`;
-    downloadAnchor.setAttribute("download", fileName);
-    
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+
+    try {
+        const tName = document.getElementById('tournamentName')?.value || "Turnamen";
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tournamentData, null, 2));
+        
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        
+        const safeFileName = tName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const dateStr = new Date().toISOString().slice(0, 10);
+        downloadAnchor.setAttribute("download", `${safeFileName}_${tournamentData.format}_${dateStr}.json`);
+        
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    } catch (err) {
+        alert("Gagal mengunduh file: " + err.message);
+    }
 }
 
 // FITUR ARSIPKAN DATA KE FIREBASE CLOUD
 function archiveTournamentData() {
-    if (!tournamentData.teams || tournamentData.teams.length === 0) {
-        alert("Belum ada data turnamen untuk diarsipkan!");
+    if (!tournamentData || !tournamentData.teams || tournamentData.teams.length === 0) {
+        alert("⚠️ Belum ada data turnamen! Silakan isi daftar tim dan klik 'Generate Bagan' terlebih dahulu.");
         return;
     }
 
-    if (!window.fbDB) {
-        alert("Koneksi Firebase belum siap!");
+    if (!window.fbDB || !window.fbRef || !window.fbPush) {
+        alert("❌ Database Firebase belum terhubung. Pastikan HP/Laptop terhubung ke internet.");
         return;
     }
 
-    const tName = document.getElementById('tournamentName').value || "Turnamen E-Sport";
+    const tName = document.getElementById('tournamentName')?.value || "Turnamen E-Sport";
     const archiveListRef = window.fbRef(window.fbDB, 'archives');
     
-    // Menyimpan turnamen sebagai riwayat permanen di node /archives/
-    window.fbPush(archiveListRef, {
+    const payload = {
         tournamentTitle: tName,
         archivedAt: new Date().toLocaleString('id-ID'),
+        timestamp: Date.now(),
         data: tournamentData
-    }).then(() => {
-        alert(`Berhasil mengarsipkan turnamen "${tName}" ke Firebase Cloud! Data aman & tersimpan.`);
-    }).catch(err => {
-        alert("Gagal mengarsipkan: " + err.message);
-    });
+    };
+
+    window.fbPush(archiveListRef, payload)
+        .then(() => {
+            alert(`✅ Berhasil! Turnamen "${tName}" telah diarsipkan secara permanen ke Firebase Cloud.`);
+        })
+        .catch((err) => {
+            alert("❌ Gagal mengarsipkan ke Firebase: " + err.message);
+        });
 }
