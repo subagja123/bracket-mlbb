@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initEvents();
     updateAdminUI();
     loadLocalData();
+    listenRealtimeUpdates(); // <-- TAMBAHKAN BARIS INI
 });
 
 function initEvents() {
@@ -741,10 +742,29 @@ function updateDoubleEliminationFlowDynamic(isUpper, roundIndex, matchIndex, cur
 // ==========================================
 // STORAGE & EXPORT
 // ==========================================
-function saveLocalData() {
-    localStorage.setItem('mlbb_bracket_data', JSON.stringify(tournamentData));
+// Tambahkan fungsi baru ini di atas saveLocalData
+function listenRealtimeUpdates() {
+    if (window.fbDB) {
+        window.fbDB.ref('live_tournament').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                tournamentData = data;
+                renderBracket(); // Otomatis update tampilan di HP tanpa perlu refresh
+            }
+        });
+    }
 }
 
+// Ubah fungsi saveLocalData menjadi seperti ini
+function saveLocalData() {
+    // 1. Simpan ke browser lokal
+    localStorage.setItem('mlbb_bracket_data', JSON.stringify(tournamentData));
+
+    // 2. Kirim otomatis ke cloud Firebase agar HP & Laptop langsung sinkron
+    if (window.fbDB) {
+        window.fbDB.ref('live_tournament').set(tournamentData);
+    }
+}
 function loadLocalData() {
     const saved = localStorage.getItem('mlbb_bracket_data');
     if (saved) {
