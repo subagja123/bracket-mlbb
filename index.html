@@ -125,22 +125,24 @@
         </div>
     </div>
  
-    <!-- Firebase SDK Compat -->
+  <!-- SDK FIREBASE COMPAT (WAJIB DITARUH SEBELUM SCRIPT.JS) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
+    <!-- KONFIGURASI FIREBASE KAMU -->
     <script>
-      // Masukkan Konfigurasi Firebase Project Anda
       const firebaseConfig = {
-        apiKey: "API_KEY_ANDA",
-        authDomain: "PROJECT_ID.firebaseapp.com",
-        databaseURL: "https://PROJECT_ID-default-rtdb.firebaseio.com",
-        projectId: "PROJECT_ID",
-        storageBucket: "PROJECT_ID.appspot.com",
-        messagingSenderId: "SENDER_ID",
-        appId: "APP_ID"
+        apiKey: "AIzaSyAFhpL0M5JFsdS71hlVU7xBK0lnno9tGlw",
+        authDomain: "e-sport-lppm-ri.firebaseapp.com",
+        databaseURL: "https://e-sport-lppm-ri-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "e-sport-lppm-ri",
+        storageBucket: "e-sport-lppm-ri.firebasestorage.app",
+        messagingSenderId: "960625264175",
+        appId: "1:960625264175:web:20729654a789a3627568da",
+        measurementId: "G-ZGZ4X7FRHZ"
       };
 
+      // Inisialisasi Firebase & Simpan Database ke Window Global
       firebase.initializeApp(firebaseConfig);
       const db = firebase.database();
       window.fbDB = db;
@@ -148,8 +150,7 @@
       window.fbPush = firebase.database.push;
     </script>
 
-    <script src="script.js"></script>
-</body>
+    <!-- SCRIPT UTAMA KODE APLIKASI -->
     <script src="script.js"></script>
 </body>
 </html>
