@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initEvents();
     updateAdminUI();
     loadLocalData();
-    listenRealtimeUpdates(); // <-- TAMBAHKAN BARIS INI
 });
 
 function initEvents() {
@@ -150,7 +149,7 @@ function generateBracket() {
     if (format === 'round_robin') {
         generateRoundRobin(teams);
     } else if (format === 'double_elimination') {
-        generateDoubleEliminationDynamic(teams);
+        generateDoubleElimination(teams);
     } else {
         generateSingleEliminationTree(teams);
     }
@@ -192,7 +191,7 @@ function generateSingleEliminationTree(teams) {
     for (let r = 2; r <= totalRounds; r++) {
         let nextMatches = [];
         let prevMatches = tournamentData.upperRounds[r - 2].matches;
-        let roundTitle = (r === totalRounds) ? "FINAL" : ((r === totalRounds - 1) ? "SEMI FINAL" : `ROUND ${r}`);
+        let roundTitle = (r === totalRounds) ? "GRAND FINAL" : ((r === totalRounds - 1) ? "SEMI FINAL" : `ROUND ${r}`);
 
         for (let i = 0; i < prevMatches.length; i += 2) {
             let prev1 = prevMatches[i];
@@ -212,115 +211,48 @@ function generateSingleEliminationTree(teams) {
     }
 }
 
-function generateDoubleEliminationDynamic(teams) {
-    let numTeams = teams.length;
-    let powerOfTwo = Math.pow(2, Math.ceil(Math.log2(numTeams)));
-    let byes = powerOfTwo - numTeams;
-
-    let paddedTeams = [...teams];
-    for (let i = 0; i < byes; i++) paddedTeams.push("BYE");
-
-    let matchCounter = 1;
-    
-    let currentMatches = [];
-    for (let i = 0; i < paddedTeams.length; i += 2) {
-        let t1 = paddedTeams[i];
-        let t2 = paddedTeams[i + 1];
-        let isBye = (t2 === "BYE");
-
-        currentMatches.push({
-            id: matchCounter++,
-            team1: t1,
-            team2: t2,
-            score1: isBye ? 1 : 0,
-            score2: 0,
-            winner: isBye ? t1 : null,
-            loser: isBye ? "BYE" : null
-        });
-    }
-
-    tournamentData.upperRounds.push({ title: "UPPER ROUND 1", matches: currentMatches });
-
-    let upperRoundsCount = Math.log2(powerOfTwo);
-    for (let r = 2; r <= upperRoundsCount; r++) {
-        let nextMatches = [];
-        let prevMatches = tournamentData.upperRounds[r - 2].matches;
-        let roundTitle = (r === upperRoundsCount) ? "UPPER FINAL" : `UPPER ROUND ${r}`;
-
-        for (let i = 0; i < prevMatches.length; i += 2) {
-            let prev1 = prevMatches[i];
-            let prev2 = prevMatches[i + 1];
-
-            nextMatches.push({
-                id: matchCounter++,
-                team1: prev1.winner ? prev1.winner : "TBD",
-                team2: prev2 ? (prev2.winner ? prev2.winner : "TBD") : "TBD",
-                score1: 0,
-                score2: 0,
-                winner: null,
-                loser: null
-            });
-        }
-        tournamentData.upperRounds.push({ title: roundTitle, matches: nextMatches });
-    }
-
-    tournamentData.upperRounds.push({
-        title: "GRAND FINAL",
-        matches: [{
-            id: matchCounter++,
-            team1: "Juara Upper Bracket",
-            team2: "Juara Lower Bracket",
-            score1: 0,
-            score2: 0,
-            winner: null,
-            loser: null
-        }]
-    });
+function generateDoubleElimination(teams) {
+    generateSingleEliminationTree(teams);
 
     let lowerMatchCounter = 101;
-    let lowerRoundsCount = (upperRoundsCount - 1) * 2;
-    let matchCountInRound = powerOfTwo / 4;
 
-    for (let lr = 1; lr <= lowerRoundsCount; lr++) {
-        let lMatches = [];
-        let count = matchCountInRound;
-        
-        for (let i = 0; i < count; i++) {
-            lMatches.push({
-                id: lowerMatchCounter++,
-                team1: "TBD",
-                team2: "TBD",
-                score1: 0,
-                score2: 0,
-                winner: null,
-                loser: null
-            });
-        }
+    // 1. LOWER ROUND 1 (2 Match: Pertemuan 4 tim yang kalah dari Upper Round 1)
+    let lowerR1Matches = [
+        { id: lowerMatchCounter++, team1: "Kalah Upper R1 #1", team2: "Kalah Upper R1 #2", score1: 0, score2: 0, winner: null, loser: null },
+        { id: lowerMatchCounter++, team1: "Kalah Upper R1 #3", team2: "Kalah Upper R1 #4", score1: 0, score2: 0, winner: null, loser: null }
+    ];
 
-        let title = (lr === lowerRoundsCount) ? "LOWER FINAL" : `LOWER ROUND ${lr}`;
-        tournamentData.lowerRounds.push({ title: title, matches: lMatches });
+    // 2. LOWER ROUND 2 (2 Match: Pemenang Lower R1 vs Tim yang Kalah dari Upper Semi Final)
+    let lowerR2Matches = [
+        { id: lowerMatchCounter++, team1: "Pemenang Lower R1 #1", team2: "Kalah Upper Semi #1", score1: 0, score2: 0, winner: null, loser: null },
+        { id: lowerMatchCounter++, team1: "Pemenang Lower R1 #2", team2: "Kalah Upper Semi #2", score1: 0, score2: 0, winner: null, loser: null }
+    ];
 
-        if (lr % 2 === 0) {
-            matchCountInRound = Math.max(1, matchCountInRound / 2);
-        }
-    }
+    // 3. LOWER SEMI FINAL (1 Match: Pertemuan 2 Pemenang dari Lower Round 2)
+    let lowerR3Matches = [
+        { id: lowerMatchCounter++, team1: "Pemenang Lower R2 #1", team2: "Pemenang Lower R2 #2", score1: 0, score2: 0, winner: null, loser: null }
+    ];
+
+    // 4. LOWER FINAL (1 Match: Pemenang Lower Semi Final vs Tim yang Kalah dari Upper Final)
+    let lowerFinalMatches = [
+        { id: lowerMatchCounter++, team1: "Pemenang Lower Semi", team2: "Kalah Upper Final", score1: 0, score2: 0, winner: null, loser: null }
+    ];
+
+    // Masukkan semua babak ke dalam tournamentData.lowerRounds
+    tournamentData.lowerRounds = [
+        { title: "LOWER ROUND 1", matches: lowerR1Matches },
+        { title: "LOWER ROUND 2", matches: lowerR2Matches },
+        { title: "LOWER SEMI FINAL", matches: lowerR3Matches },
+        { title: "LOWER FINAL", matches: lowerFinalMatches }
+    ];
 }
 
 function generateRoundRobin(teams) {
     let groupMatches = [];
     let matchId = 1;
 
-    // Reset Statistik Klasemen (Format MPL Style)
     teams.forEach(t => {
-        tournamentData.standings[t] = { 
-            matchPlayed: 0, 
-            matchWon: 0, 
-            matchLost: 0, 
-            gameWon: 0, 
-            gameLost: 0, 
-            gameNet: 0, 
-            points: 0 
-        };
+        tournamentData.standings[t] = { played: 0, won: 0, lost: 0, points: 0 };
     });
 
     for (let i = 0; i < teams.length; i++) {
@@ -342,57 +274,37 @@ function generateRoundRobin(teams) {
     }];
 }
 
-// PERHITUNGAN KLASEMEN MODEL LIGA MPL ID
 function recalculateGroupStandings() {
     if (tournamentData.format !== 'round_robin') return;
 
-    // Inisialisasi awal statistik setiap tim
     tournamentData.teams.forEach(t => {
-        tournamentData.standings[t] = { 
-            matchPlayed: 0, 
-            matchWon: 0, 
-            matchLost: 0, 
-            gameWon: 0, 
-            gameLost: 0, 
-            gameNet: 0, 
-            points: 0 
-        };
+        tournamentData.standings[t] = { played: 0, won: 0, lost: 0, points: 0 };
     });
 
     let matches = tournamentData.upperRounds[0].matches;
     matches.forEach(m => {
-        if (m.winner !== null) {
+        if (m.winner) {
             let t1 = m.team1;
             let t2 = m.team2;
-            let s1 = parseInt(m.score1) || 0;
-            let s2 = parseInt(m.score2) || 0;
 
-            if (tournamentData.standings[t1] && tournamentData.standings[t2]) {
-                // Total Seri Tanding (Match Played)
-                tournamentData.standings[t1].matchPlayed += 1;
-                tournamentData.standings[t2].matchPlayed += 1;
-
-                // Akumulasi Menang/Kalah Game
-                tournamentData.standings[t1].gameWon += s1;
-                tournamentData.standings[t1].gameLost += s2;
-
-                tournamentData.standings[t2].gameWon += s2;
-                tournamentData.standings[t2].gameLost += s1;
-
-                // Penentuan Menang Seri (Match Winner)
+            if (tournamentData.standings[t1]) {
+                tournamentData.standings[t1].played += 1;
                 if (m.winner === t1) {
-                    tournamentData.standings[t1].matchWon += 1;
-                    tournamentData.standings[t1].points += 1; // 1 Poin Kemenangan Seri
-                    tournamentData.standings[t2].matchLost += 1;
-                } else if (m.winner === t2) {
-                    tournamentData.standings[t2].matchWon += 1;
-                    tournamentData.standings[t2].points += 1; // 1 Poin Kemenangan Seri
-                    tournamentData.standings[t1].matchLost += 1;
+                    tournamentData.standings[t1].won += 1;
+                    tournamentData.standings[t1].points += 3;
+                } else {
+                    tournamentData.standings[t1].lost += 1;
                 }
+            }
 
-                // Perhitungan Selisih Game (Game Net / Diff)
-                tournamentData.standings[t1].gameNet = tournamentData.standings[t1].gameWon - tournamentData.standings[t1].gameLost;
-                tournamentData.standings[t2].gameNet = tournamentData.standings[t2].gameWon - tournamentData.standings[t2].gameLost;
+            if (tournamentData.standings[t2]) {
+                tournamentData.standings[t2].played += 1;
+                if (m.winner === t2) {
+                    tournamentData.standings[t2].won += 1;
+                    tournamentData.standings[t2].points += 3;
+                } else {
+                    tournamentData.standings[t2].lost += 1;
+                }
             }
         }
     });
@@ -431,6 +343,7 @@ function renderBracket() {
 
     let html = `<div class="bracket-wrapper">`;
     
+    // UPPER BRACKET / SINGLE ELIMINATION
     html += `<div>`;
     if (tournamentData.format === 'double_elimination') {
         html += `<div class="bracket-section-title"><i class="fa-solid fa-angles-up"></i> UPPER BRACKET</div>`;
@@ -440,6 +353,7 @@ function renderBracket() {
     html += renderRoundsTree(tournamentData.upperRounds);
     html += `</div>`;
 
+    // LOWER BRACKET
     if (tournamentData.format === 'double_elimination' && tournamentData.lowerRounds.length > 0) {
         html += `<div style="margin-top: 1.5rem;">`;
         html += `<div class="bracket-section-title" style="color: #0d9488;"><i class="fa-solid fa-angles-down"></i> LOWER BRACKET</div>`;
@@ -451,52 +365,43 @@ function renderBracket() {
     container.innerHTML = html;
 }
 
-// RENDERING TABEL KLASEMEN MODEL MPL ID
 function renderStandingsTable() {
     let sortedTeams = [...tournamentData.teams].sort((a, b) => {
-        let stA = tournamentData.standings[a] || { points: 0, gameNet: 0, gameWon: 0 };
-        let stB = tournamentData.standings[b] || { points: 0, gameNet: 0, gameWon: 0 };
-
-        // 1. Urutkan berdasarkan Poin Match Menang
-        if (stB.points !== stA.points) return stB.points - stA.points;
-        // 2. Jika Poin Sama, Urutkan berdasarkan Selisih Game (Game Net)
-        if (stB.gameNet !== stA.gameNet) return stB.gameNet - stA.gameNet;
-        // 3. Jika Masih Sama, Urutkan berdasarkan Total Game Menang
-        return stB.gameWon - stA.gameWon;
+        let pA = tournamentData.standings[a] ? tournamentData.standings[a].points : 0;
+        let pB = tournamentData.standings[b] ? tournamentData.standings[b].points : 0;
+        return pB - pA;
     });
 
     let html = `
         <div class="standings-box">
-            <h3 class="standings-title"><i class="fa-solid fa-trophy"></i> Klasemen Liga MPL Style</h3>
+            <h3 class="standings-title"><i class="fa-solid fa-trophy"></i> Klasemen Sementara</h3>
             <table class="standings-table">
                 <thead>
                     <tr>
                         <th>#</th>
                         <th style="text-align: left;">Tim</th>
-                        <th>Match (W-L)</th>
-                        <th>Game (W-L)</th>
-                        <th>Net</th>
+                        <th>P</th>
+                        <th>W</th>
+                        <th>L</th>
                         <th>PTS</th>
                     </tr>
                 </thead>
                 <tbody>`;
 
     sortedTeams.forEach((t, idx) => {
-        let stat = tournamentData.standings[t] || { matchPlayed: 0, matchWon: 0, matchLost: 0, gameWon: 0, gameLost: 0, gameNet: 0, points: 0 };
+        let stat = tournamentData.standings[t] || { played: 0, won: 0, lost: 0, points: 0 };
         let rankBadge = `<span class="rank-badge rank-other">${idx + 1}</span>`;
         if (idx === 0) rankBadge = `<span class="rank-badge rank-1">1</span>`;
         else if (idx === 1) rankBadge = `<span class="rank-badge rank-2">2</span>`;
         else if (idx === 2) rankBadge = `<span class="rank-badge rank-3">3</span>`;
 
-        let netSign = stat.gameNet > 0 ? `+${stat.gameNet}` : `${stat.gameNet}`;
-
         html += `
             <tr>
                 <td>${rankBadge}</td>
                 <td class="team-cell"><i class="fa-solid fa-shield-halved team-icon"></i> ${t}</td>
-                <td><span class="stat-badge stat-p">${stat.matchWon}-${stat.matchLost}</span></td>
-                <td><span class="stat-badge stat-w">${stat.gameWon}-${stat.gameLost}</span></td>
-                <td><span class="stat-badge ${stat.gameNet >= 0 ? 'stat-w' : 'stat-l'}">${netSign}</span></td>
+                <td><span class="stat-badge stat-p">${stat.played}</span></td>
+                <td><span class="stat-badge stat-w">${stat.won}</span></td>
+                <td><span class="stat-badge stat-l">${stat.lost}</span></td>
                 <td><span class="stat-badge stat-pts">${stat.points}</span></td>
             </tr>
         `;
@@ -511,6 +416,7 @@ function renderStandingsTable() {
     return html;
 }
 
+// RENDER MATCH FASE GRUP VERTIKAL
 function renderGroupMatchListVertical(matches) {
     let html = `<div class="group-matches-vertical-list">`;
     matches.forEach(match => {
@@ -551,6 +457,7 @@ function renderGroupMatchListVertical(matches) {
     return html;
 }
 
+// RENDER BRACKET TREE
 function renderRoundsTree(rounds) {
     let html = `<div class="bracket-tree">`;
     rounds.forEach(round => {
@@ -665,9 +572,7 @@ function saveScoreFromModal() {
             currentMatch.loser = null;
         }
 
-        if (tournamentData.format === 'double_elimination') {
-            updateDoubleEliminationFlowDynamic(isUpper, roundIndex, matchIndex, currentMatch);
-        } else if (isUpper && tournamentData.format === 'single_elimination') {
+        if (isUpper && tournamentData.format !== 'round_robin') {
             if (roundIndex + 1 < tournamentData.upperRounds.length) {
                 let nextMatches = tournamentData.upperRounds[roundIndex + 1].matches;
                 let nextMatchIndex = Math.floor(matchIndex / 2);
@@ -678,6 +583,17 @@ function saveScoreFromModal() {
                     else nextMatch.team2 = currentMatch.winner || "TBD";
                 }
             }
+
+            if (tournamentData.format === 'double_elimination' && roundIndex === 0 && tournamentData.lowerRounds.length > 0) {
+                let lowerR1Matches = tournamentData.lowerRounds[0].matches;
+                let targetLowerMatchIndex = Math.floor(matchIndex / 2);
+                let targetLowerMatch = lowerR1Matches[targetLowerMatchIndex];
+
+                if (targetLowerMatch) {
+                    if (matchIndex % 2 === 0) targetLowerMatch.team1 = currentMatch.loser || "Kalah Upper #1";
+                    else targetLowerMatch.team2 = currentMatch.loser || "Kalah Upper #2";
+                }
+            }
         }
 
         saveLocalData();
@@ -686,85 +602,13 @@ function saveScoreFromModal() {
     }
 }
 
-function updateDoubleEliminationFlowDynamic(isUpper, roundIndex, matchIndex, currentMatch) {
-    const winner = currentMatch.winner || "TBD";
-    const loser = currentMatch.loser || "TBD";
-    const totalUpperRounds = tournamentData.upperRounds.length;
-
-    if (isUpper) {
-        if (roundIndex < totalUpperRounds - 2) {
-            let nextMatch = tournamentData.upperRounds[roundIndex + 1].matches[Math.floor(matchIndex / 2)];
-            if (nextMatch) {
-                if (matchIndex % 2 === 0) nextMatch.team1 = winner;
-                else nextMatch.team2 = winner;
-            }
-        } else if (roundIndex === totalUpperRounds - 2) { 
-            let grandFinal = tournamentData.upperRounds[totalUpperRounds - 1].matches[0];
-            if (grandFinal) grandFinal.team1 = winner;
-        }
-
-        if (roundIndex === 0) { 
-            let targetLower = tournamentData.lowerRounds[0]?.matches[Math.floor(matchIndex / 2)];
-            if (targetLower) {
-                if (matchIndex % 2 === 0) targetLower.team1 = loser;
-                else targetLower.team2 = loser;
-            }
-        } else {
-            let targetLowerRoundIdx = roundIndex * 2 - 1;
-            if (tournamentData.lowerRounds[targetLowerRoundIdx]) {
-                let targetLower = tournamentData.lowerRounds[targetLowerRoundIdx].matches[matchIndex];
-                if (targetLower) targetLower.team2 = loser;
-            }
-        }
-    } else {
-        const totalLowerRounds = tournamentData.lowerRounds.length;
-        if (roundIndex < totalLowerRounds - 1) {
-            let isEvenRound = (roundIndex % 2 === 0);
-            let nextLowerRound = tournamentData.lowerRounds[roundIndex + 1];
-            
-            if (isEvenRound) {
-                let nextMatch = nextLowerRound.matches[matchIndex];
-                if (nextMatch) nextMatch.team1 = winner;
-            } else {
-                let nextMatch = nextLowerRound.matches[Math.floor(matchIndex / 2)];
-                if (nextMatch) {
-                    if (matchIndex % 2 === 0) nextMatch.team1 = winner;
-                    else nextMatch.team2 = winner;
-                }
-            }
-        } else if (roundIndex === totalLowerRounds - 1) {
-            let grandFinal = tournamentData.upperRounds[totalUpperRounds - 1].matches[0];
-            if (grandFinal) grandFinal.team2 = winner;
-        }
-    }
-}
-
 // ==========================================
 // STORAGE & EXPORT
 // ==========================================
-// Tambahkan fungsi baru ini di atas saveLocalData
-function listenRealtimeUpdates() {
-    if (window.fbDB) {
-        window.fbDB.ref('live_tournament').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                tournamentData = data;
-                renderBracket(); // Otomatis update tampilan di HP tanpa perlu refresh
-            }
-        });
-    }
-}
-
-// Ubah fungsi saveLocalData menjadi seperti ini
 function saveLocalData() {
-    // 1. Simpan ke browser lokal
     localStorage.setItem('mlbb_bracket_data', JSON.stringify(tournamentData));
-
-    // 2. Kirim otomatis ke cloud Firebase agar HP & Laptop langsung sinkron
-    if (window.fbDB) {
-        window.fbDB.ref('live_tournament').set(tournamentData);
-    }
 }
+
 function loadLocalData() {
     const saved = localStorage.getItem('mlbb_bracket_data');
     if (saved) {

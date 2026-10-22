@@ -15,7 +15,7 @@
     <!-- NAVBAR HEADER -->
     <header class="app-header">
         <div class="logo-container">
-            <img src="logo.jpg" alt="Logo Turnamen" class="header-logo-img">
+            <img src="logo.jpg"Logo Turnamen" class="header-logo-img">
             <h2>E-SPORT <span>LPPM RI</span></h2>
         </div>
         <div class="header-actions">
@@ -124,33 +124,7 @@
             </div>
         </div>
     </div>
- 
-  <!-- SDK FIREBASE COMPAT (WAJIB DITARUH SEBELUM SCRIPT.JS) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <!-- KONFIGURASI FIREBASE KAMU -->
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyAFhpL0M5JFsdS71hlVU7xBK0lnno9tGlw",
-        authDomain: "e-sport-lppm-ri.firebaseapp.com",
-        databaseURL: "https://e-sport-lppm-ri-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "e-sport-lppm-ri",
-        storageBucket: "e-sport-lppm-ri.firebasestorage.app",
-        messagingSenderId: "960625264175",
-        appId: "1:960625264175:web:20729654a789a3627568da",
-        measurementId: "G-ZGZ4X7FRHZ"
-      };
-
-      // Inisialisasi Firebase & Simpan Database ke Window Global
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.database();
-      window.fbDB = db;
-      window.fbRef = firebase.database.ref;
-      window.fbPush = firebase.database.push;
-    </script>
-
-    <!-- SCRIPT UTAMA KODE APLIKASI -->
     <script src="script.js"></script>
 </body>
 </html>
